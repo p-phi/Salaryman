@@ -7,6 +7,7 @@ set -euo pipefail
 : "${SALARYMAN_ENDPOINT:?set SALARYMAN_ENDPOINT (e.g. http://localhost:11434/v1/chat/completions)}"
 : "${SALARYMAN_MODEL:?set SALARYMAN_MODEL (e.g. llama3.2)}"
 MAX_ITERATIONS="${SALARYMAN_MAX_ITERATIONS:-16}"
+PROVIDER="${SALARYMAN_PROVIDER:-openai-compatible}"
 
 # ---------------------------------------------------------------- args
 
@@ -14,7 +15,14 @@ SKILLS_DIR=""
 TASK=""
 
 usage() {
-  echo "usage: salaryman <skills> --run <task>" >&2
+  cat >&2 <<EOF
+usage:
+  salaryman <skills> --run <task> [--provider <name>]
+
+providers (shapes):
+  openai-compatible   OpenAI chat-completions shape (Ollama, Groq, Together, ...)
+  responses           OpenAI Responses API shape
+EOF
   exit 1
 }
 
@@ -23,6 +31,9 @@ while [[ $# -gt 0 ]]; do
     --run)
       [[ -n "${2:-}" ]] || usage
       TASK="$2"; shift 2 ;;
+    --provider)
+      [[ -n "${2:-}" ]] || usage
+      PROVIDER="$2"; shift 2 ;;
     -h|--help)
       usage ;;
     *)
@@ -37,10 +48,12 @@ done
 [[ -n "$SKILLS_DIR" && -n "$TASK" ]] || usage
 [[ -d "$SKILLS_DIR" ]] || { echo "error: skills dir not found: $SKILLS_DIR" >&2; exit 1; }
 
+case "$PROVIDER" in
+  openai-compatible|responses) ;;
+  *) echo "error: unknown provider: $PROVIDER" >&2; usage ;;
+esac
+
 # ---------------------------------------------------------------- registry
-# A skill is defined by its SKILL.md. Tools are optional: a bundle with
-# schemas/ and tools/ produces an agent that can act; a bundle with only
-# SKILL.md produces a conversational agent.
 
 declare -A SCRIPT
 DECLS=()
@@ -88,6 +101,14 @@ build_tools_json() {
 
 call_model() {
   local messages_json="$1"
+  case "$PROVIDER" in
+    openai-compatible) call_openai_compatible "$messages_json" ;;
+    responses)         call_responses "$messages_json" ;;
+  esac
+}
+
+call_openai_compatible() {
+  local messages_json="$1"
   local tools_json payload
   tools_json=$(build_tools_json)
 
@@ -97,13 +118,31 @@ call_model() {
     --argjson tools "$tools_json" \
     '{model: $model, messages: $messages, tools: $tools, stream: false}')
 
+  post_json "$payload"
+}
+
+call_responses() {
+  echo "error: provider 'responses' is not implemented yet." >&2
+  echo "       implement call_responses and normalize_responses." >&2
+  exit 1
+}
+
+post_json() {
+  local payload="$1"
   local -a headers=(-H "Content-Type: application/json")
   [[ -n "${SALARYMAN_API_KEY:-}" ]] && headers+=(-H "Authorization: Bearer $SALARYMAN_API_KEY")
-
   curl -sS "${headers[@]}" -d "$payload" "$SALARYMAN_ENDPOINT"
 }
 
 normalize_response() {
+  local resp="$1"
+  case "$PROVIDER" in
+    openai-compatible) normalize_openai "$resp" ;;
+    responses)         normalize_responses "$resp" ;;
+  esac
+}
+
+normalize_openai() {
   local resp="$1"
   jq -c '
     .choices[0].message
@@ -112,11 +151,19 @@ normalize_response() {
         content: (.content // ""),
         tool_calls: [
           (.tool_calls // [])[]
-          | {name: .function.name,
-             arguments: (.function.arguments | if type == "string" then (try fromjson catch {}) else . end)}
+          | {
+              id: .id,
+              name: .function.name,
+              arguments: (.function.arguments | if type == "string" then (try fromjson catch {}) else . end)
+            }
         ]
       }
   ' <<<"$resp"
+}
+
+normalize_responses() {
+  echo "error: provider 'responses' is not implemented yet." >&2
+  exit 1
 }
 
 # ---------------------------------------------------------------- execution
@@ -157,7 +204,7 @@ run_tool() {
 main() {
   load_registry
   local tool_count=${#SCRIPT[@]}
-  echo "salaryman ready. $tool_count tools registered. ctrl-c to quit." >&2
+  echo "salaryman ready. provider: $PROVIDER. $tool_count tools registered. ctrl-c to quit." >&2
 
   local system messages
   system=$(build_system_prompt)
@@ -179,15 +226,28 @@ main() {
       return 0
     fi
 
-    local n j name args result
+local n j name args call_id result
+n=$(jq 'length' <<<"$calls")
+for ((j = 0; j < n; j++)); do
+  name=$(jq -r ".[$j].name" <<<"$calls")
+  args=$(jq -c ".[$j].arguments" <<<"$calls")
+  call_id=$(jq -r ".[$j].id" <<<"$calls")
+  echo "  [$name] $(jq -r 'tostring' <<<"$args")" >&2
+  result=$(run_tool "$name" "$args")
+  messages=$(jq -c --arg id "$call_id" --arg content "$result" \
+    '. + [{role: "tool", tool_call_id: $id, content: $content}]' <<<"$messages")
+done
+
+    local n j name args call_id result
     n=$(jq 'length' <<<"$calls")
     for ((j = 0; j < n; j++)); do
       name=$(jq -r ".[$j].name" <<<"$calls")
       args=$(jq -c ".[$j].arguments" <<<"$calls")
+      call_id=$(jq -r ".[$j].id" <<<"$calls")
       echo "  [$name] $(jq -r 'tostring' <<<"$args")" >&2
       result=$(run_tool "$name" "$args")
-      messages=$(jq -c --arg name "$name" --arg content "$result" \
-        '. + [{role:"tool", name:$name, content:$content}]' <<<"$messages")
+      messages=$(jq -c --arg id "$call_id" --arg content "$result" \
+        '. + [{role: "tool", tool_call_id: $id, content: $content}]' <<<"$messages")
     done
   done
 
