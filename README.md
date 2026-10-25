@@ -1,10 +1,14 @@
+<div style="text-align: center;">
 <img src="./assets/Salaryman.png" width="200">
+<h1>Salaryman</h1>
+<h3>A minimal AI agent defined by its skills.</h3>
+</div>
 
-# Salaryman
+---
 
-**A minimal AI agent defined by its skills.**
+Build an agent by prosing in a `SKILL.md` and attaching a script — the cost is a schema and a name. Cheap enough that the bundler is itself a bundle: 
 
-A skill is a fixed prompt that may declare tools. The agent is the set of skills it carries — nothing more. There is no general invocation path: the model can only ask for declared tools, with arguments that fit their schemas. Every action is a typed call to a readable file.
+> **an agent that builds agents**, at the same cost.
 
 ---
 
