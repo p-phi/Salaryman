@@ -1,3 +1,5 @@
+<img src="./assets/Salaryman.png" width="200">
+
 # Salaryman
 
 **A minimal AI agent defined by its skills.**
