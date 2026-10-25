@@ -55,7 +55,7 @@ esac
 
 # ---------------------------------------------------------------- registry
 
-declare -A SCRIPT
+declare -A SCRIPT=()
 DECLS=()
 
 load_registry() {
@@ -109,12 +109,22 @@ call_model() {
 
 call_openai_compatible() {
   local messages_json="$1"
-  local tools_json payload
+  local tools_json payload wire_messages
   tools_json=$(build_tools_json)
+
+  wire_messages=$(jq -c '
+    [ .[] | if .tool_calls then
+        .tool_calls = [ .tool_calls[] | {
+          id: .id,
+          type: "function",
+          function: {name: .name, arguments: (.arguments | tojson)}
+        } ]
+      else . end ]
+  ' <<<"$messages_json")
 
   payload=$(jq -n -c \
     --arg model "$SALARYMAN_MODEL" \
-    --argjson messages "$messages_json" \
+    --argjson messages "$wire_messages" \
     --argjson tools "$tools_json" \
     '{model: $model, messages: $messages, tools: $tools, stream: false}')
 
@@ -144,7 +154,11 @@ normalize_response() {
 
 normalize_openai() {
   local resp="$1"
-  jq -c '
+  local normalized
+  normalized=$(jq -c '
+    if (.choices // null) == null then
+      {__error: (.error.message // "no choices in response")}
+    else
     .choices[0].message
     | {
         role: "assistant",
@@ -158,7 +172,14 @@ normalize_openai() {
             }
         ]
       }
-  ' <<<"$resp"
+    end
+    ' <<<"$resp")
+  
+  if jq -e 'has("__error")' >/dev/null <<<"$normalized"; then
+    jq -r '.__error' <<<"$normalized" >&2
+    return 1
+  fi
+  printf '%s' "$normalized"
 }
 
 normalize_responses() {
@@ -204,7 +225,9 @@ run_tool() {
 main() {
   load_registry
   local tool_count=${#SCRIPT[@]}
-  echo "salaryman ready. provider: $PROVIDER. $tool_count tools registered. ctrl-c to quit." >&2
+  printf "%s\n\n" "salaryman ready. provider: $PROVIDER. $tool_count tools registered. ctrl-c to quit." >&2
+
+  printf "%s\n" "> $TASK" >&2
 
   local system messages
   system=$(build_system_prompt)
@@ -225,18 +248,6 @@ main() {
       echo "$content"
       return 0
     fi
-
-local n j name args call_id result
-n=$(jq 'length' <<<"$calls")
-for ((j = 0; j < n; j++)); do
-  name=$(jq -r ".[$j].name" <<<"$calls")
-  args=$(jq -c ".[$j].arguments" <<<"$calls")
-  call_id=$(jq -r ".[$j].id" <<<"$calls")
-  echo "  [$name] $(jq -r 'tostring' <<<"$args")" >&2
-  result=$(run_tool "$name" "$args")
-  messages=$(jq -c --arg id "$call_id" --arg content "$result" \
-    '. + [{role: "tool", tool_call_id: $id, content: $content}]' <<<"$messages")
-done
 
     local n j name args call_id result
     n=$(jq 'length' <<<"$calls")

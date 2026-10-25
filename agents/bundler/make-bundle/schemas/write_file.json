@@ -1,0 +1,13 @@
+{
+  "name": "write_file",
+  "description": "Write a file at the given path under the skills directory.",
+  "script": "tools/write_file.sh",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "path": { "type": "string", "description": "Path relative to the skills directory." },
+      "content": { "type": "string", "description": "Full contents of the file." }
+    },
+    "required": ["path", "content"]
+  }
+}

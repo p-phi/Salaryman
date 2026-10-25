@@ -1,0 +1,15 @@
+{
+    "name": "run",
+    "description": "Run a single read-only command from the allowlist. No pipes, redirects, subshells, or command substitution.",
+    "script": "tools/run.sh",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "command": {
+                "type": "string",
+                "description": "A single command from the allowlist, e.g. 'ls -la', 'cat README.md', 'git status'."
+            }
+        },
+        "required": ["command"]
+    }
+}
