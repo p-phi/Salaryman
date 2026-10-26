@@ -1,5 +1,25 @@
 #!/usr/bin/env bash
-# salaryman — a minimal agent defined by its skills.
+# =============================================================================
+# Salaryman
+# -----------------------------------------------------------------------------
+# A minimal agent defined by its skills.
+#
+# An agent is a harness plus a skill set. This script is the harness: it loads
+# a skills directory, builds a tool registry from the schema files, and runs a
+# loop: model -> tool call -> script -> result -> model. There is no general
+# invocation path; the model can only ask for tools that a file declares.
+#
+# Environment:
+#   SALARYMAN_ENDPOINT   required; chat-completions URL
+#   SALARYMAN_MODEL      required; model name
+#   SALARYMAN_API_KEY    optional; bearer token for a hosted provider
+#   SALARYMAN_PROVIDER   optional; openai-compatible (default) | responses
+#   SALARYMAN_MAX_ITERATIONS  optional; loop cap, default 16
+#
+# Source: https://github.com/p-phi/salaryman
+# License: MIT — see the LICENSE file in the source repo.
+# Author: P. Phi
+# ============================================================================= 
 set -euo pipefail
 
 VERSION="0.0.1"
@@ -247,6 +267,9 @@ main() {
   local i resp normalized content calls
   for ((i = 0; i < MAX_ITERATIONS; i++)); do
     resp=$(call_model "$messages")
+    #-------DEBUG---------
+    echo "DEBUG resp words: $resp" >&2
+    #---------------------
     normalized=$(normalize_response "$resp")
     content=$(jq -r '.content' <<<"$normalized")
     calls=$(jq -c '.tool_calls' <<<"$normalized")

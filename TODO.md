@@ -7,3 +7,4 @@
 - [] add commented header to maim script
 - [] add podman compose file
 - [] add flag for prompt as file
+- [] need to fix the bundler's SKILL.md -> missing tool in the produced artifact in most runs.
