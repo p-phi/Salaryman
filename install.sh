@@ -3,7 +3,7 @@
 # Usage: install.sh [--unattended]
 set -euo pipefail
 
-SALARYMAN_URL="${SALARYMAN_URL:-https://raw.githubusercontent.com/p-phi/salaryman/main/salaryman}"
+SALARYMAN_URL="${SALARYMAN_URL:-https://raw.githubusercontent.com/p-phi/Salaryman/refs/heads/main/salaryman.sh}"
 SALARYMAN_BIN="${SALARYMAN_BIN:-$HOME/.local/bin}"
 
 UNATTENDED=false
