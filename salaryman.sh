@@ -6,8 +6,6 @@ VERSION="0.0.1"
 
 # ---------------------------------------------------------------- config
 
-: "${SALARYMAN_ENDPOINT:?set SALARYMAN_ENDPOINT (e.g. http://localhost:11434/v1/chat/completions)}"
-: "${SALARYMAN_MODEL:?set SALARYMAN_MODEL (e.g. llama3.2)}"
 MAX_ITERATIONS="${SALARYMAN_MAX_ITERATIONS:-16}"
 PROVIDER="${SALARYMAN_PROVIDER:-openai-compatible}"
 
@@ -232,6 +230,9 @@ run_tool() {
 # ---------------------------------------------------------------- loop
 
 main() {
+  : "${SALARYMAN_ENDPOINT:?set SALARYMAN_ENDPOINT (e.g. http://localhost:11434/v1/chat/completions)}"
+  : "${SALARYMAN_MODEL:?set SALARYMAN_MODEL (e.g. llama3.2)}"
+
   load_registry
   local tool_count=${#SCRIPT[@]}
   printf "%s\n\n" "salaryman ready. provider: $PROVIDER. $tool_count tools registered. ctrl-c to quit." >&2
