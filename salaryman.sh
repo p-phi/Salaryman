@@ -29,7 +29,8 @@ EOF
 }
 
 version() {
-    echo "Salaryman v$VERSION"
+  echo "Salaryman v$VERSION"
+  exit 1
 }
 
 while [[ $# -gt 0 ]]; do
