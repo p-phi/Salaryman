@@ -2,6 +2,8 @@
 # salaryman — a minimal agent defined by its skills.
 set -euo pipefail
 
+VERSION="0.0.1"
+
 # ---------------------------------------------------------------- config
 
 : "${SALARYMAN_ENDPOINT:?set SALARYMAN_ENDPOINT (e.g. http://localhost:11434/v1/chat/completions)}"
@@ -26,6 +28,10 @@ EOF
   exit 1
 }
 
+version() {
+    echo "Salaryman v$VERSION"
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --run)
@@ -36,6 +42,8 @@ while [[ $# -gt 0 ]]; do
       PROVIDER="$2"; shift 2 ;;
     -h|--help)
       usage ;;
+    -v|--version)
+      version ;;
     *)
       if [[ -z "$SKILLS_DIR" ]]; then
         SKILLS_DIR="$1"; shift
