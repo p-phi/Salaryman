@@ -4,3 +4,4 @@
 - [] update readme to include a demo gif of normal salsryman run (shell) and failure mode on prohibited action (write file)
 - [] add install script
 - [] add commented header to maim script
+- [] add podman compose file
