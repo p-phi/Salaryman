@@ -5,8 +5,12 @@
 </div>
 
 ---
+Agents are bundles. Bundles are three things:
+- prose in a `SKILL.md`, 
+- a tool, 
+- a schema. 
 
-Build an agent by prosing in a `SKILL.md` and attaching a script — the cost is a schema and a name. Cheap enough that the bundler is itself a bundle: 
+Cheap enough that the bundler is itself a bundle: 
 
 > **an agent that builds agents**, at the same cost.
 
@@ -14,23 +18,23 @@ Build an agent by prosing in a `SKILL.md` and attaching a script — the cost is
 
 ## Getting started
 
-<!-- ```bash -->
-<!-- curl -fsSL https://raw.githubusercontent.com/p-phi/salaryman/main/install.sh | bash -->
-<!-- ``` -->
+Install salaryman
 
-<!-- Installs salaryman to `~/.local/bin`, installing curl and jq first if missing. Add `--unattended` to skip the prompt; read the script with `| less` first. -->
+```bash
+curl -fsSL https://raw.githubusercontent.com/p-phi/salaryman/main/install.sh | bash
+```
 
-<!-- Then point it at a model: -->
+Then point it at a model:
 
 ```bash
 export SALARYMAN_ENDPOINT="http://localhost:11434/v1/chat/completions"
 export SALARYMAN_MODEL="llama3.2"
 ```
 
-And run a bundle:
+And run an agent (a directory containing one or more bundles):
 
 ```bash
-salaryman agents/shell --run "what's in this repository?"
+salaryman agents/sheller --run "what's in this repository?"
 ```
 
 ```
@@ -44,7 +48,10 @@ salaryman ready. 1 tool registered. ctrl-c to quit.
   This repository contains a bash agent harness with a skills directory...
 ```
 
-Dependencies: bash, curl, jq — plus whatever a tool script invokes (git for the shell bundle's git commands, python3 for a Python tool).
+N.B: Sample bundles and agents can be downloaded from this repo under bundles/ and agents/. 
+
+
+**Dependencies:** `bash`, `curl`, `jq` — plus whatever a tool script invokes (git for the shell bundle's git commands, python3 for a Python tool).
 
 ---
 
@@ -52,7 +59,7 @@ Dependencies: bash, curl, jq — plus whatever a tool script invokes (git for th
 
 This project ships two agents. Both are bundles — there is no other kind of thing.
 
-`agents/shell` — runs a restricted shell. One tool, run, which accepts a single command from a fixed allowlist: `ls`, `cat`, `head`, `tail`, `wc`, `grep`, `git status`, `git diff`, `git log`. 
+`agents/sheller` — runs a restricted shell. One tool, run, which accepts a single command from a fixed allowlist: `ls`, `cat`, `head`, `tail`, `wc`, `grep`, `git status`, `git diff`, `git log`. 
 
 ```bash
 salaryman agents/shell --run "what changed in the last commit?"
