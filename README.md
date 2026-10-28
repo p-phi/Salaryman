@@ -2,6 +2,7 @@
 <img src="./assets/Salaryman.png" width="200">
 <h1>Salaryman</h1>
 <h3>A minimal AI agent defined by its skills.</h3>
+<img src="./assets/salaryman-demo.gif">
 </div>
 
 ---
