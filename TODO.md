@@ -1,10 +1,11 @@
 - [x] flag --version|-v (shows app version)
 - [x] refactor agents/ -> bundles/{make-bundle,shell} + agents/<agent-name>/<symlinks to bundles/<bundle name> 
 - [] make a memory bundle: save a report of what has been done with the current agent, also can read prior memory and add it to current salaryman context
+- [] make a pipe bundle that calls another salaryman amongst a list.
 - [] update readme to include a demo gif of normal salsryman run (shell) and failure mode on prohibited action (write file)
-- [] add install script
+- [x] add install script
 - [] add tests
-- [] add commented header to maim script
+- [x] add commented header to maim script
 - [] add podman compose file
-- [] add flag for prompt as file
+-  --[] add flag for prompt as file--
 - [] need to fix the bundler's SKILL.md -> missing tool in the produced artifact in most runs.
