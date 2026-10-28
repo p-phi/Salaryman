@@ -8,7 +8,7 @@ the task.
 
 ## The format
 
-A bundle is a directory containing:
+A bundle is a directory containing the following files:
 
 - `SKILL.md` — required. Frontmatter with `name` and `description`, then
   a prose body that says when and how to use the tools.
@@ -91,12 +91,14 @@ echo "result for $arg"
 
 Your task
 
-Produce a bundle for the task. Write SKILL.md, one or more schemas,
+Produce a bundle for the task. Write the file SKILL.md, one or more schemas,
 and the scripts. Use make_dir to create the directory structure and
 write_file for each file. After writing each script, call
 make_executable on it.
 
-The bundle is created under the skills directory the agent is running
+Create the bundle at the path provided by the user.
+
+If no path is provided, the bundle is created under the skills directory the agent is running
 in. Write paths relative to that directory, e.g.
 my-tool/SKILL.md, my-tool/schemas/foo.json,
 my-tool/tools/foo.sh.
