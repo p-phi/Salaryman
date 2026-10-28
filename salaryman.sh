@@ -31,6 +31,7 @@ PROVIDER="${SALARYMAN_PROVIDER:-openai-compatible}"
 
 # ---------------------------------------------------------------- args
 
+VERBOSE=0
 SKILLS_DIR=""
 TASK=""
 
@@ -63,6 +64,8 @@ while [[ $# -gt 0 ]]; do
       usage ;;
     -v|--version)
       version ;;
+    -V|--verbose)
+      VERBOSE=1 ;;
     *)
       if [[ -z "$SKILLS_DIR" ]]; then
         SKILLS_DIR="$1"; shift
@@ -255,9 +258,10 @@ main() {
 
   load_registry
   local tool_count=${#SCRIPT[@]}
-  printf "%s\n\n" "salaryman ready. provider: $PROVIDER. $tool_count tools registered. ctrl-c to quit." >&2
+  printf "\n"
+  printf "%s\n" "salaryman ready!" "- provider: $PROVIDER" "- url: $SALARYMAN_ENDPOINT" "- model: $SALARYMAN_MODEL" " " "$tool_count tools registered." " " "ctrl-c to quit." >&2
 
-  printf "%s\n" "> $TASK" >&2
+  printf "\n%s\n" "> $TASK" >&2
 
   local system messages
   system=$(build_system_prompt)
@@ -267,9 +271,9 @@ main() {
   local i resp normalized content calls
   for ((i = 0; i < MAX_ITERATIONS; i++)); do
     resp=$(call_model "$messages")
-    #-------DEBUG---------
-    echo "DEBUG resp words: $resp" >&2
-    #---------------------
+    ##-------DEBUG---------
+    #echo "DEBUG resp words: $resp" >&2
+    ##---------------------
     normalized=$(normalize_response "$resp")
     content=$(jq -r '.content' <<<"$normalized")
     calls=$(jq -c '.tool_calls' <<<"$normalized")
