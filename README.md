@@ -2,7 +2,7 @@
 <img src="./assets/Salaryman.png" width="200">
 <h1>Salaryman</h1>
 <h3>A minimal AI agent defined by its skills.</h3>
-<img src="./assets/salaryman-demo.gif">
+<img src="./assets/makebundle.gif">
 </div>
 
 ---
@@ -38,16 +38,9 @@ And run an agent (a directory containing one or more bundles):
 salaryman bundles/shell-run --run "what's in this repository?"
 ```
 
-```
-salaryman ready. 1 tool registered. ctrl-c to quit.
-
-> what's in this repository?
-  [run] {"command":"ls -la"}
-  total 24
-  drwxr-xr-x  8 user user 4096 Oct 24 09:12 .
-  ...
-  This repository contains a bash agent harness with a skills directory...
-```
+<div style="text-align: center;">
+<img src="./assets/salaryman-demo.gif">
+</div>
 
 N.B: Sample bundles can be downloaded from this repo under bundles. 
 
