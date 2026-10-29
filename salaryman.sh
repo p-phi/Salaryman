@@ -31,7 +31,6 @@ PROVIDER="${SALARYMAN_PROVIDER:-openai-compatible}"
 
 # ---------------------------------------------------------------- args
 
-VERBOSE=0
 SKILLS_DIR=""
 TASK=""
 
@@ -40,9 +39,21 @@ usage() {
 usage:
   salaryman <skills> --run <task> [--provider <name>]
 
-providers (shapes):
-  openai-compatible   OpenAI chat-completions shape (Ollama, Groq, Together, ...)
-  responses           OpenAI Responses API shape
+options:
+  --run <task>         run an agent on the given task
+  --provider <name>    provider shape (default: openai-compatible)
+  -h, --help           show this help
+  -v, --version        show the version
+
+providers:
+  openai-compatible    OpenAI chat-completions shape (Ollama, Groq, Together, ...)
+
+environment:
+  SALARYMAN_ENDPOINT   required; chat-completions URL
+  SALARYMAN_MODEL      required; model name
+  SALARYMAN_API_KEY    optional; bearer token for a hosted provider
+  SALARYMAN_PROVIDER   optional; default provider shape
+  SALARYMAN_MAX_ITERATIONS  optional; loop cap, default 16
 EOF
   exit 1
 }
@@ -64,8 +75,6 @@ while [[ $# -gt 0 ]]; do
       usage ;;
     -v|--version)
       version ;;
-    -V|--verbose)
-      VERBOSE=1 ;;
     *)
       if [[ -z "$SKILLS_DIR" ]]; then
         SKILLS_DIR="$1"; shift
@@ -89,9 +98,12 @@ declare -A SCRIPT=()
 DECLS=()
 
 load_registry() {
-  local f name
+  local f name skillpath="$SKILLS_DIR/*/schemas/*.json"
+  if [[ -f "$SKILLS_DIR/SKILL.md" ]]; then
+    skillpath="$SKILLS_DIR/schemas/*.json"
+  fi
   shopt -s nullglob
-  for f in "$SKILLS_DIR"/*/schemas/*.json; do
+  for f in $skillpath; do
     name=$(jq -r '.name // empty' "$f")
     if [[ -z "$name" ]]; then
       echo "warning: schema without name: $f" >&2
@@ -111,8 +123,12 @@ load_registry() {
 
 build_system_prompt() {
   local f out="You are a terminal assistant. Use the available tools when helpful."
+  local skillpath="$SKILLS_DIR/*/SKILL.md"
+  if [[ -f "$SKILLS_DIR/SKILL.md" ]]; then
+    skillpath="$SKILLS_DIR/SKILL.md"
+  fi
   shopt -s nullglob
-  for f in "$SKILLS_DIR"/*/SKILL.md; do
+  for f in $skillpath; do
     out+=$'\n\n'"$(cat "$f")"
   done
   shopt -u nullglob
@@ -133,7 +149,7 @@ call_model() {
   local messages_json="$1"
   case "$PROVIDER" in
     openai-compatible) call_openai_compatible "$messages_json" ;;
-    responses)         call_responses "$messages_json" ;;
+    # responses)         call_responses "$messages_json" ;;
   esac
 }
 
@@ -161,11 +177,11 @@ call_openai_compatible() {
   post_json "$payload"
 }
 
-call_responses() {
-  echo "error: provider 'responses' is not implemented yet." >&2
-  echo "       implement call_responses and normalize_responses." >&2
-  exit 1
-}
+# call_responses() {
+#   echo "error: provider 'responses' is not implemented yet." >&2
+#   echo "       implement call_responses and normalize_responses." >&2
+#   exit 1
+# }
 
 post_json() {
   local payload="$1"
@@ -178,7 +194,7 @@ normalize_response() {
   local resp="$1"
   case "$PROVIDER" in
     openai-compatible) normalize_openai "$resp" ;;
-    responses)         normalize_responses "$resp" ;;
+    # responses)         normalize_responses "$resp" ;;
   esac
 }
 
@@ -212,10 +228,10 @@ normalize_openai() {
   printf '%s' "$normalized"
 }
 
-normalize_responses() {
-  echo "error: provider 'responses' is not implemented yet." >&2
-  exit 1
-}
+# normalize_responses() {
+#   echo "error: provider 'responses' is not implemented yet." >&2
+#   exit 1
+# }
 
 # ---------------------------------------------------------------- execution
 
@@ -250,12 +266,33 @@ run_tool() {
   fi
 }
 
+thinking_start() {
+  [[ -t 2 ]] || return 0
+  (
+    local t=0
+    while :; do
+      printf '\rthinking… %ds' "$t" >&2
+      sleep 1
+      t=$((t+1))
+    done
+  ) &
+  SPIN_PID=$!
+}
+
+thinking_stop() {
+  [[ -n "$SPIN_PID" ]] || return 0
+  kill "$SPIN_PID" 2>/dev/null || true
+  wait "$SPIN_PID" 2>/dev/null || true
+  SPIN_PID=""
+  printf '\r\033[K' >&2
+}
+
 # ---------------------------------------------------------------- loop
 
 main() {
   : "${SALARYMAN_ENDPOINT:?set SALARYMAN_ENDPOINT (e.g. http://localhost:11434/v1/chat/completions)}"
   : "${SALARYMAN_MODEL:?set SALARYMAN_MODEL (e.g. llama3.2)}"
-
+  trap 'thinking_stop' EXIT
   load_registry
   local tool_count=${#SCRIPT[@]}
   printf "\n"
@@ -270,14 +307,15 @@ main() {
 
   local i resp normalized content calls
   for ((i = 0; i < MAX_ITERATIONS; i++)); do
+    thinking_start
     resp=$(call_model "$messages")
+    thinking_stop
     ##-------DEBUG---------
     #echo "DEBUG resp words: $resp" >&2
     ##---------------------
     normalized=$(normalize_response "$resp")
     content=$(jq -r '.content' <<<"$normalized")
     calls=$(jq -c '.tool_calls' <<<"$normalized")
-
     messages=$(jq -c --argjson m "$normalized" '. + [$m]' <<<"$messages")
 
     if [[ "$(jq 'length' <<<"$calls")" -eq 0 ]]; then
