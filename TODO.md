@@ -10,5 +10,5 @@
 - [] add podman compose file
 -  --[] add flag for prompt as file--
 - [x] need to fix the bundler's SKILL.md -> missing tool in the produced artifact in most runs.
-- [] if SKILL.md file present at the top of the given path, make salaryman run it as a single-bundled agent
+- [x] if SKILL.md file present at the top of the given path, make salaryman run it as a single-bundled agent
 - [] create a separate repo for bundles
