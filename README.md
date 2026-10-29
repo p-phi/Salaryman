@@ -35,7 +35,7 @@ export SALARYMAN_MODEL="llama3.2"
 And run an agent (a directory containing one or more bundles):
 
 ```bash
-salaryman agents/sheller --run "what's in this repository?"
+salaryman bundles/shell-run --run "what's in this repository?"
 ```
 
 ```
@@ -49,7 +49,7 @@ salaryman ready. 1 tool registered. ctrl-c to quit.
   This repository contains a bash agent harness with a skills directory...
 ```
 
-N.B: Sample bundles and agents can be downloaded from this repo under bundles/ and agents/. 
+N.B: Sample bundles can be downloaded from this repo under bundles. 
 
 
 **Dependencies:** `bash`, `curl`, `jq` — plus whatever a tool script invokes (git for the shell bundle's git commands, python3 for a Python tool).
@@ -60,16 +60,16 @@ N.B: Sample bundles and agents can be downloaded from this repo under bundles/ a
 
 This project ships two agents. Both are bundles — there is no other kind of thing.
 
-`agents/sheller` — runs a restricted shell. One tool, run, which accepts a single command from a fixed allowlist: `ls`, `cat`, `head`, `tail`, `wc`, `grep`, `git status`, `git diff`, `git log`. 
+`bundles/shell-run` — runs a restricted shell. One tool, run, which accepts a single command from a fixed allowlist: `ls`, `cat`, `head`, `tail`, `wc`, `grep`, `git status`, `git diff`, `git log`. 
 
 ```bash
-salaryman agents/shell --run "what changed in the last commit?"
+salaryman bundles/shell-run --run "what changed in the last commit?"
 ```
 
-`agents/bundler` — builds skill bundles from a prompt. Its skill is `make-bundle`: it reads the format, reads the templates, and writes a new bundle using four narrow file tools (`read_file`, `write_file`, `make_dir`, `make_executable`). The format and templates live in its `SKILL.md`, so they are readable and editable.
+`bundles/make-bundle` — builds skill bundles from a prompt. Its skill is `make-bundle`: it reads the format, reads the templates, and writes a new bundle using four narrow file tools (`read_file`, `write_file`, `make_dir`, `make_executable`). The format and templates live in its `SKILL.md`, so they are readable and editable.
 
 ```bash
-salaryman agents/bundler --run "create a bundle that reads files and lists directories"
+salaryman bundles/make-bundle --run "create a bundle that reads files and lists directories"
 ```
 
 The bundler is the design applied to itself: an agent whose skill is producing agents. It is also the reason the bundle format is documented in prose — the documentation is the bundler's prompt.
@@ -103,13 +103,35 @@ A bundle whose tool runs another salaryman composes them; a new feature is a bun
 ## A Skill Bundle
 
 ```
-skills/shell/       # the bundle
+skills/shell-run/       # the bundle
   SKILL.md          # prose: when and how
   schemas/
     run.json
   tools/
     run.sh
 ```
+
+`SKILL.md` is prose — when to use the tool, how to interpret the result, what not to do:
+
+```markdown
+---
+name: shell
+description: Run read-only commands from an allowlist
+---
+
+You can run a small set of read-only commands with the `run` tool.
+
+The allowlist is: ls, cat, head, tail, wc, grep, git status, git diff,
+git log.
+
+That is the whole list. You cannot run anything else — not `rm`, not
+`curl`, not a pipeline, not a redirect.
+
+If you need a command that is not on the list, say so. Do not try to
+work around the allowlist.
+```
+
+The harness never parses `SKILL.md`; it concatenates it into the system prompt.
 
 `schemas/run.json` declares a tool completely:
 
@@ -155,27 +177,6 @@ fail() {
 
 The schema is shaped like a general shell. The script is not. The narrowness is in the script, and the script is readable.
 
-`SKILL.md` is prose — when to use the tool, how to interpret the result, what not to do:
-
-```markdown
----
-name: shell
-description: Run read-only commands from an allowlist
----
-
-You can run a small set of read-only commands with the `run` tool.
-
-The allowlist is: ls, cat, head, tail, wc, grep, git status, git diff,
-git log.
-
-That is the whole list. You cannot run anything else — not `rm`, not
-`curl`, not a pipeline, not a redirect.
-
-If you need a command that is not on the list, say so. Do not try to
-work around the allowlist.
-```
-
-The harness never parses `SKILL.md`; it concatenates it into the system prompt.
 
 A skill is defined by its `SKILL.md`; `schemas/` and `tools/` are optional. A skill bundle with only `SKILL.md` is a conversational agent — it reasons and responds, but has no action surface.
 
