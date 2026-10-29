@@ -15,6 +15,7 @@
 #   SALARYMAN_API_KEY    optional; bearer token for a hosted provider
 #   SALARYMAN_PROVIDER   optional; openai-compatible (default) | responses
 #   SALARYMAN_MAX_ITERATIONS  optional; loop cap, default 16
+#   SALARYMAN_THINK_BUFFER  optional; loop exit condition buffer
 #
 # Source: https://github.com/p-phi/salaryman
 # License: MIT — see the LICENSE file in the source repo.
@@ -25,15 +26,18 @@ set -euo pipefail
 VERSION="0.0.1"
 
 # ---------------------------------------------------------------- config
-
+# Iteration control
 MAX_ITERATIONS="${SALARYMAN_MAX_ITERATIONS:-16}"
+# Allows the model to return pure text responses without tools for up to THINK_BUFFER rounds
+THINK_BUFFER="${SALARYMAN_THINK_BUFFER:-1}"
+# Provider shape (default: OpenAI-compatible)
 PROVIDER="${SALARYMAN_PROVIDER:-openai-compatible}"
 
 # ---------------------------------------------------------------- args
 
 SKILLS_DIR=""
 TASK=""
-
+# Usage banner and command-line argument parsing
 usage() {
   cat >&2 <<EOF
 usage:
@@ -57,12 +61,12 @@ environment:
 EOF
   exit 1
 }
-
+# Display version
 version() {
   echo "Salaryman v$VERSION"
   exit 1
 }
-
+# Parse command-line arguments
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --run)
@@ -83,7 +87,7 @@ while [[ $# -gt 0 ]]; do
       fi ;;
   esac
 done
-
+# Validate required args and permissions
 [[ -n "$SKILLS_DIR" && -n "$TASK" ]] || usage
 [[ -d "$SKILLS_DIR" ]] || { echo "error: skills dir not found: $SKILLS_DIR" >&2; exit 1; }
 
@@ -96,7 +100,7 @@ esac
 
 declare -A SCRIPT=()
 DECLS=()
-
+# Loads all skills into SCRIPT map
 load_registry() {
   local f name skillpath="$SKILLS_DIR/*/schemas/*.json"
   if [[ -f "$SKILLS_DIR/SKILL.md" ]]; then
@@ -220,11 +224,12 @@ normalize_openai() {
       }
     end
     ' <<<"$resp")
-  
+  # Handle error case  
   if jq -e 'has("__error")' >/dev/null <<<"$normalized"; then
     jq -r '.__error' <<<"$normalized" >&2
     return 1
   fi
+  # Return cleaned JSON
   printf '%s' "$normalized"
 }
 
@@ -265,7 +270,7 @@ run_tool() {
     printf '%s' "$out"
   fi
 }
-
+# User feedback loop
 thinking_start() {
   [[ -t 2 ]] || return 0
   (
@@ -278,7 +283,7 @@ thinking_start() {
   ) &
   SPIN_PID=$!
 }
-
+# Stop the 'thinking' task if running
 thinking_stop() {
   [[ -n "$SPIN_PID" ]] || return 0
   kill "$SPIN_PID" 2>/dev/null || true
@@ -290,40 +295,58 @@ thinking_stop() {
 # ---------------------------------------------------------------- loop
 
 main() {
+  # Validate required vars
   : "${SALARYMAN_ENDPOINT:?set SALARYMAN_ENDPOINT (e.g. http://localhost:11434/v1/chat/completions)}"
   : "${SALARYMAN_MODEL:?set SALARYMAN_MODEL (e.g. llama3.2)}"
+  
+  # Kill thinking task on exit
   trap 'thinking_stop' EXIT
+  
+  # Load tools
   load_registry
   local tool_count=${#SCRIPT[@]}
   printf "\n"
   printf "%s\n" "salaryman ready!" "- provider: $PROVIDER" "- url: $SALARYMAN_ENDPOINT" "- model: $SALARYMAN_MODEL" " " "$tool_count tools registered." " " "ctrl-c to quit." >&2
 
   printf "\n%s\n" "> $TASK" >&2
-
+  
+  # Initialize task messages
   local system messages
   system=$(build_system_prompt)
   messages=$(jq -n -c --arg s "$system" --arg t "$TASK" \
     '[{role:"system", content:$s}, {role:"user", content:$t}]')
-
+  
+  # Main conversation loop
   local i resp normalized content calls
-  for ((i = 0; i < MAX_ITERATIONS; i++)); do
+  local buffer=0
+  for ((i = 0; i < MAX_ITERATIONS; i++)); do 
     thinking_start
+    # Call model to get response
     resp=$(call_model "$messages")
     thinking_stop
     ##-------DEBUG---------
     #echo "DEBUG resp words: $resp" >&2
     ##---------------------
+    # Normalize the response
     normalized=$(normalize_response "$resp")
     content=$(jq -r '.content' <<<"$normalized")
     calls=$(jq -c '.tool_calls' <<<"$normalized")
+    # Add response to messages
     messages=$(jq -c --argjson m "$normalized" '. + [$m]' <<<"$messages")
 
+    # Buffer or return based on conditions
+    # This allows some models to use tools better
     if [[ "$(jq 'length' <<<"$calls")" -eq 0 ]]; then
       echo
       echo "$content"
+      (( buffer +=1 ))
+    else
+      buffer=0
+    fi
+    if [[ $buffer -gt $THINK_BUFFER ]]; then
       return 0
     fi
-
+    # Handle tool calls
     local n j name args call_id result
     n=$(jq 'length' <<<"$calls")
     for ((j = 0; j < n; j++)); do
@@ -332,11 +355,12 @@ main() {
       call_id=$(jq -r ".[$j].id" <<<"$calls")
       echo "  [$name] $(jq -r 'tostring' <<<"$args")" >&2
       result=$(run_tool "$name" "$args")
+      # Reconstruct messages with tool response
       messages=$(jq -c --arg id "$call_id" --arg content "$result" \
         '. + [{role: "tool", tool_call_id: $id, content: $content}]' <<<"$messages")
     done
   done
-
+  # Print final answer if no early exit
   echo "error: max iterations ($MAX_ITERATIONS) reached" >&2
   exit 1
 }
