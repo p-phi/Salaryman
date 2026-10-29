@@ -2,10 +2,13 @@
 - [x] refactor agents/ -> bundles/{make-bundle,shell} + agents/<agent-name>/<symlinks to bundles/<bundle name> 
 - [] make a memory bundle: save a report of what has been done with the current agent, also can read prior memory and add it to current salaryman context
 - [] make a pipe bundle that calls another salaryman amongst a list.
-- [] update readme to include a demo gif of normal salsryman run (shell) and failure mode on prohibited action (write file)
+- [] make a weather bundle
+- [x] update readme to include a demo gif of normal salsryman run (shell) and failure mode on prohibited action (write file)
 - [x] add install script
 - [] add tests
 - [x] add commented header to maim script
 - [] add podman compose file
 -  --[] add flag for prompt as file--
-- [] need to fix the bundler's SKILL.md -> missing tool in the produced artifact in most runs.
+- [x] need to fix the bundler's SKILL.md -> missing tool in the produced artifact in most runs.
+- [] if SKILL.md file present at the top of the given path, make salaryman run it as a single-bundled agent
+- [] create a separate repo for bundles
