@@ -14,3 +14,4 @@
 - [] create a separate repo for bundles
 - [] max_tokens
 - [] fail script upon receiving unregistered tool 
+- [] a dependency installer agent
