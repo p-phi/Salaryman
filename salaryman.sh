@@ -32,7 +32,7 @@ MAX_ITERATIONS="${SALARYMAN_MAX_ITERATIONS:-16}"
 THINK_BUFFER="${SALARYMAN_THINK_BUFFER:-1}"
 # Provider shape (default: OpenAI-compatible)
 PROVIDER="${SALARYMAN_PROVIDER:-openai-compatible}"
-
+SPIN_PID=""
 # ---------------------------------------------------------------- args
 
 SKILLS_DIR=""
@@ -58,6 +58,7 @@ environment:
   SALARYMAN_API_KEY    optional; bearer token for a hosted provider
   SALARYMAN_PROVIDER   optional; default provider shape
   SALARYMAN_MAX_ITERATIONS  optional; loop cap, default 16
+  SALARYMAN_THINK_BUFFER  optional; max rounds without tool, default 1
 EOF
   exit 1
 }
@@ -285,9 +286,9 @@ thinking_start() {
 }
 # Stop the 'thinking' task if running
 thinking_stop() {
-  [[ -n "$SPIN_PID" ]] || return 0
-  kill "$SPIN_PID" 2>/dev/null || true
-  wait "$SPIN_PID" 2>/dev/null || true
+  [[ -n "${SPIN_PID:-}" ]] || return 0
+  kill "${SPIN_PID:-}" 2>/dev/null || true
+  wait "${SPIN_PID:-}" 2>/dev/null || true
   SPIN_PID=""
   printf '\r\033[K' >&2
 }
