@@ -1,0 +1,10 @@
+{
+    "name": "hostname",
+    "description": "Retrieve and return the user's machine's hostname.",
+    "script": "tools/hostname.sh",
+    "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+    }
+}
