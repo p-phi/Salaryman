@@ -1,0 +1,19 @@
+{
+    "name": "run_bundle",
+    "description": "Run a salaryman agent bundle on a task. Returns the agent's final answer.",
+    "script": "tools/run_bundle.sh",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "path": {
+                "type": "string",
+                "description": "Path to the bundle's skills directory, e.g. agents/time."
+            },
+            "task": {
+                "type": "string",
+                "description": "The task to hand to the agent, e.g. 'what time is it?'."
+            }
+        },
+        "required": ["path", "task"]
+    }
+}
