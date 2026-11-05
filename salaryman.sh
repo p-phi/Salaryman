@@ -321,11 +321,11 @@ main() {
   # Load tools
   load_registry
   local tool_count=${#SCRIPT[@]}
-  printf "\n"
-  printf "%s\n" "salaryman ready!" "- provider: $PROVIDER" "- url: $SALARYMAN_ENDPOINT" "- model: $SALARYMAN_MODEL" " " "$tool_count tools registered." " " "ctrl-c to quit." >&2
-
-  printf "\n%s\n" "> $TASK" >&2
-  
+  if [[ $VERBOSE -eq 1 ]];then
+    printf "\n"
+    printf "%s\n" "salaryman ready!" "- provider: $PROVIDER" "- url: $SALARYMAN_ENDPOINT" "- model: $SALARYMAN_MODEL" " " "$tool_count tools registered." " " "ctrl-c to quit." >&2
+    printf "\n%s\n" "> $TASK" >&2
+  fi
   # Initialize task messages
   local system messages
   system=$(build_system_prompt)
