@@ -1,19 +1,20 @@
 <div style="text-align: center;">
 <img src="./assets/Salaryman.png" width="200">
 <h1>Salaryman</h1>
-<h3>A minimal AI agent defined by its skills.</h3>
-<img src="./assets/makebundle.gif">
+<h3>Shell-Native AI Agent Runtime</h3>
+<div style="text-align: center; margin-bottom: 10px; font-size: 20px;">
+(Self-Writing-Ready)
+</div>
+<img src="./assets/intro.gif">
 </div>
 
 ---
-Agents are bundles. Bundles are three things:
-- prose in a `SKILL.md`, 
-- a tool, 
-- a schema. 
 
-Cheap enough that the bundler is itself a bundle: 
+## Agents Are Bundles
+* `SKILL.md` for persona and intent,
+* `schema/action.json` for structural validation,
+* `tools/action.sh` for deterministic execution.
 
-> **an agent that builds agents**, at the same cost.
 
 ---
 
@@ -38,9 +39,6 @@ And run an agent (a directory containing one or more bundles):
 salaryman bundles/shell-run --run "what's in this repository?"
 ```
 
-<div style="text-align: center;">
-<img src="./assets/salaryman-demo.gif">
-</div>
 
 N.B: Sample bundles can be downloaded from this repo under bundles. 
 
@@ -87,7 +85,16 @@ Four decisions follow from that shape:
 - The harness trusts the skill. No validation, no sandboxing. A tool that can't handle a bad argument needs a better script.
 - Bundles are provider-neutral. Provider translation is a branch in the client, not a change to any bundle.
 
-**Composition is a salaryman.** 
+**Composition as UNIX pipes**
+
+You can also pipe into stdin:
+
+```bash
+salaryman bundles/shell-run --run "List the files inside directory/ ?" \
+| salaryman bundles/shell-run --run "what is inside those files?"
+```
+
+**Composition as a salaryman.** 
 
 A bundle whose tool runs another salaryman composes them; a new feature is a bundle, and a composition of features is a bundle that calls bundles. The unit of composition is the same as the unit of execution.
 
