@@ -36,6 +36,7 @@ PROVIDER="${SALARYMAN_PROVIDER:-openai-compatible}"
 SPIN_PID=""
 # ---------------------------------------------------------------- args
 
+VERBOSE=0
 SKILLS_DIR=""
 TASK=""
 # Usage banner and command-line argument parsing
@@ -49,6 +50,7 @@ options:
   --provider <name>    provider shape (default: openai-compatible)
   -h, --help           show this help
   -v, --version        show the version
+  -V, --verbose        show tool call transcripts
 
 providers:
   openai-compatible    OpenAI chat-completions shape (Ollama, Groq, Together, ...)
@@ -82,6 +84,8 @@ while [[ $# -gt 0 ]]; do
       usage ;;
     -v|--version)
       version ;;
+    -V|--verbose)
+      VERBOSE=1; shift 1 ;;
     *)
       if [[ -z "$SKILLS_DIR" ]]; then
         SKILLS_DIR="$1"; shift
@@ -365,7 +369,9 @@ main() {
       name=$(jq -r ".[$j].name" <<<"$calls")
       args=$(jq -c ".[$j].arguments" <<<"$calls")
       call_id=$(jq -r ".[$j].id" <<<"$calls")
-      echo "  [$name] $(jq -r 'tostring' <<<"$args")" >&2
+      if [[ $VERBOSE -eq 1 ]]; then
+        echo "  [$name] $(jq -r 'tostring' <<<"$args")" >&2
+      fi
       result=$(run_tool "$name" "$args")
       # Reconstruct messages with tool response
       messages=$(jq -c --arg id "$call_id" --arg content "$result" \
