@@ -24,6 +24,7 @@
 set -euo pipefail
 
 VERSION="0.0.1"
+USAGE_ERROR=1
 
 # ---------------------------------------------------------------- config
 # Iteration control
@@ -60,12 +61,12 @@ environment:
   SALARYMAN_MAX_ITERATIONS  optional; loop cap, default 16
   SALARYMAN_THINK_BUFFER  optional; max rounds without tool, default 1
 EOF
-  exit 1
+  exit "$USAGE_ERROR"
 }
 # Display version
 version() {
   echo "Salaryman v$VERSION"
-  exit 1
+  exit 0
 }
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
@@ -77,6 +78,7 @@ while [[ $# -gt 0 ]]; do
       [[ -n "${2:-}" ]] || usage
       PROVIDER="$2"; shift 2 ;;
     -h|--help)
+      USAGE_ERROR=0
       usage ;;
     -v|--version)
       version ;;
