@@ -88,6 +88,15 @@ while [[ $# -gt 0 ]]; do
       fi ;;
   esac
 done
+
+# PIPE SUPPORT
+# If stdin is not a terminal, append its content to the task.
+if [[ ! -t 0 ]]; then
+  input=$(cat)
+  [[ -n "$input" ]] && TASK="$TASK"$'\n\n'"$input"
+fi
+
+
 # Validate required args and permissions
 [[ -n "$SKILLS_DIR" && -n "$TASK" ]] || usage
 [[ -d "$SKILLS_DIR" ]] || { echo "error: skills dir not found: $SKILLS_DIR" >&2; exit 1; }
